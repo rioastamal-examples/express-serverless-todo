@@ -16,7 +16,12 @@ https://todomvc.com/
 const { createApp } = Vue
 // This should be changed based on authenticated user
 const STORAGE_KEY = 'vue-todomvc-jakartajs'
-const apiBaseUrl = location.protocol + '//' + location.hostname;
+let apiBaseUrl = '{{APP_BASE_URL}}';
+
+// AWS Cloud9 development
+if (location.hostname.indexOf('vfs.cloud9') !== -1) {
+  apiBaseUrl = location.protocol + '//' + location.hostname;
+}
 
 const filters = {
   all: (todos) => todos,
