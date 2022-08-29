@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>Serverless Todo Demo</title>
+    <link rel="stylesheet" href="https://unpkg.com/todomvc-app-css@2.4.1/index.css" type="text/css" />
+    <script src="https://unpkg.com/vue@3"></script>
+  </head>
+  <body>
+<!--
+A fully spec-compliant TodoMVC implementation
+https://todomvc.com/
+-->
+
+<script type="module">
+const { createApp } = Vue
+// This should be changed based on authenticated user
+const STORAGE_KEY = 'vue-todomvc-jakartajs'
+const apiBaseUrl = location.protocol + '//' + location.hostname;
+
+const filters = {
+  all: (todos) => todos,
+  active: (todos) => todos.filter((todo) => !todo.completed),
+  completed: (todos) => todos.filter((todo) => todo.completed)
+}
+
+createApp({
+  // app initial state
+  data: () => ({
+    todos: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
+    editedTodo: null,
+    visibility: 'all',
+    fetchedInitialData: false
+  }),
+
+  // watch todos change for localStorage persistence
+  watch: {
+    todos: {
+      handler(todos) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
+        if (this.fetchedInitialData) {
+          this.callApi('PUT', { body: todos })
+        }
+      },
+      deep: true
+    }
+  },
+
+  mounted() {
+    window.addEventListener('hashchange', this.onHashChange)
+    fetch(apiBaseUrl).then( response => {
+      response.json().then( items => {
+        console.log(items)
+        this.todos = items
+        this.fetchedInitialData = true;
+        this.onHashChange()
+      })
+    });
+  },
+
+  computed: {
+    filteredTodos() {
+      return filters[this.visibility](this.todos)
+    },
+    remaining() {
+      return filters.active(this.todos).length
+    }
+  },
+
+  // methods that implement data logic.
+  // note there's no DOM manipulation here at all.
+  methods: {
+    toggleAll(e) {
+      this.todos.forEach((todo) => (todo.completed = e.target.checked))
+    },
+    
+    callApi(method, params) {
+      const fetchParam = {
+        method: method || 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }
+
+      const methodsWithBody = ['POST', 'PUT'];
+      if (methodsWithBody.indexOf(method) !== -1) {
+        fetchParam['body'] = JSON.stringify(params.body)
+      }
+
+      const urlPath = params.path || '';
+      
+      fetch(apiBaseUrl + urlPath, fetchParam)
+      .then(resp1 => resp1.json())
+      .then(resp2 => console.log(`Successfully ${method} todo.`, resp2))
+      .catch(err => console.log(`ERR: Can not ${method} todo. Message: ` + err.toString()))
+    },
+
+    addTodo(e) {
+      const value = e.target.value.trim()
+      if (!value) {
+        return
+      }
+      const newItem = {
+        id: Date.now(),
+        title: value,
+        completed: false
+      };
+      this.todos.push(newItem)
+      e.target.value = ''
+    },
+
+    removeTodo(todo) {
+      this.todos.splice(this.todos.indexOf(todo), 1)
+    },
+
+    editTodo(todo) {
+      this.beforeEditCache = todo.title
+      this.editedTodo = todo
+    },
+
+    doneEdit(todo) {
+      if (!this.editedTodo) {
+        return
+      }
+      this.editedTodo = null
+      todo.title = todo.title.trim()
+      if (!todo.title) {
+        this.removeTodo(todo)
+      }
+    },
+
+    cancelEdit(todo) {
+      this.editedTodo = null
+      todo.title = this.beforeEditCache
+    },
+
+    removeCompleted() {
+      this.todos = filters.active(this.todos)
+    },
+
+    onHashChange() {
+      var visibility = window.location.hash.replace(/#\/?/, '')
+      if (filters[visibility]) {
+        this.visibility = visibility
+      } else {
+        window.location.hash = ''
+        this.visibility = 'all'
+      }
+    }
+  }
+}).mount('#app')
+</script>
+
+  <div id="app">
+    <section class="todoapp">
+      <header class="header">
+        <h1>todos</h1>
+        <input
+          class="new-todo"
+          autofocus
+          placeholder="What needs to be done?"
+          @keyup.enter="addTodo"
+        >
+      </header>
+      <section class="main" v-show="todos.length">
+        <input
+          id="toggle-all"
+          class="toggle-all"
+          type="checkbox"
+          :checked="remaining === 0"
+          @change="toggleAll"
+        >
+        <label for="toggle-all">Mark all as complete</label>
+        <ul class="todo-list">
+          <li
+            v-for="todo in filteredTodos"
+            class="todo"
+            :key="todo.id"
+            :class="{ completed: todo.completed, editing: todo === editedTodo }"
+          >
+            <div class="view">
+              <input class="toggle" type="checkbox" v-model="todo.completed">
+              <label @dblclick="editTodo(todo)">{{ todo.title }}</label>
+              <button class="destroy" @click="removeTodo(todo)"></button>
+            </div>
+            <input
+              v-if="todo === editedTodo"
+              class="edit"
+              type="text"
+              v-model="todo.title"
+              @vnode-mounted="({ el }) => el.focus()"
+              @blur="doneEdit(todo)"
+              @keyup.enter="doneEdit(todo)"
+              @keyup.escape="cancelEdit(todo)"
+            >
+          </li>
+        </ul>
+      </section>
+      <footer class="footer" v-show="todos.length">
+        <span class="todo-count">
+          <strong>{{ remaining }}</strong>
+          <span>{{ remaining === 1 ? ' item' : ' items' }} left</span>
+        </span>
+        <ul class="filters">
+          <li>
+            <a href="#/all" :class="{ selected: visibility === 'all' }">All</a>
+          </li>
+          <li>
+            <a href="#/active" :class="{ selected: visibility === 'active' }">Active</a>
+          </li>
+          <li>
+            <a href="#/completed" :class="{ selected: visibility === 'completed' }">Completed</a>
+          </li>
+        </ul>
+        <button class="clear-completed" @click="removeCompleted" v-show="todos.length > remaining">
+          Clear completed
+        </button>
+      </footer>
+    </section>
+  </div>
+  </body>
+</html>
