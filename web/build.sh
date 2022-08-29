@@ -1,3 +1,5 @@
+#!/bin/sh
+
 realpath() {
     [[ $1 = /* ]] && {
         echo "$1"
@@ -19,7 +21,6 @@ realpath() {
 
 BASE_DIR=$( dirname "$0" )
 ABS_DIR=$( realpath $BASE_DIR )
-APP_NAME="golang-app-runner-demo"
 
 mkdir -p $ABS_DIR/build
 
