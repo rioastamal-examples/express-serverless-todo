@@ -2,8 +2,6 @@ const { DynamoDBClient, GetItemCommand, PutItemCommand } = require('@aws-sdk/cli
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 const express = require('express');
 const app = express();
-const serverless = require('serverless-http');
-const withoutLambda = process.env.hasOwnProperty('APP_WITHOUT_LAMBDA') === true;
 const appEnv = process.env.NODE_ENV || 'development';
 
 // userId should be changed based on authenticated user, right now it's just dummy
@@ -53,13 +51,9 @@ app.put('/', express.json(), (req, res) => {
   });
 });
 
-if (withoutLambda) {
-  const port = process.env.APP_PORT || 8080;
-  
-  app.listen(port, function() {
-    console.log(`API server running on port ${port}`);
-  });
-  return;
-}
+const port = process.env.APP_PORT || 8080;
 
-exports.handler = serverless(app);
+app.listen(port, function() {
+  console.log(`API server running on port ${port}`);
+});
+return;
