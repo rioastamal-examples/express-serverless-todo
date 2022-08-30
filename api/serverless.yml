@@ -31,7 +31,7 @@ provider:
 
 functions:
   todo:
-    handler: src/index.handler
+    handler: lambda.handler
     events: 
       - httpApi: '*'
 
