@@ -33,8 +33,10 @@ functions:
   getTodo:
     handler: lambda.handler
     package:
+      individually: true
       patterns:
         - '!src/index.js'
+        - '!info/**'
     events: 
       - httpApi:
           method: GET
@@ -43,20 +45,40 @@ functions:
       APP_TABLE_NAME: ${self:custom.tableName}
       APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
       APP_EXPRESS_PATH: './src/get'
-      
-  todo:
-    handler: lambda.handler
+  
+  getInfo:
+    handler: info/lambda.handler
     package:
+      individually: true
       patterns:
-        - '!src/get.js'
+        - '!*.js'
+        - '!node_modules/**'
+        - '!*.json'
+        - '!*src/*'
+        - '!*build.sh'
     events: 
-      - httpApi: '*'
-
+      - httpApi:
+          method: GET
+          path: '/info'
     environment:
       APP_TABLE_NAME: ${self:custom.tableName}
       APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
       APP_EXPRESS_PATH: './src/index'
 
+  todo:
+    handler: lambda.handler
+    package:
+      individually: true
+      patterns:
+        - '!src/get.js'
+        - '!info/**'
+    events: 
+      - httpApi: '*'
+    environment:
+      APP_TABLE_NAME: ${self:custom.tableName}
+      APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
+      APP_EXPRESS_PATH: './src/index'
+      
 resources:
   Resources:
     BotDemoTable:

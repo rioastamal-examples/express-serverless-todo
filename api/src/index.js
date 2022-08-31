@@ -11,14 +11,6 @@ const ddbclient = new DynamoDBClient({ region: process.env.APP_REGION || 'ap-sou
 
 app.set('json spaces', 2);
 
-app.get('/info', (req, res) => {
-  res.json({
-    name: 'Serverless Todo',
-    version: '1.0',
-    state: 'demo'
-  });
-});
-
 app.put('/', express.json(), (req, res) => {
   const todoItem = {
     pk: userId,
