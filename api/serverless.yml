@@ -30,14 +30,32 @@ provider:
           Resource: 'arn:aws:lightsail:${self:provider.region}:${aws:accountId}:*'
 
 functions:
+  getTodo:
+    handler: lambda.handler
+    package:
+      patterns:
+        - '!src/index.js'
+    events: 
+      - httpApi:
+          method: GET
+          path: '/'
+    environment:
+      APP_TABLE_NAME: ${self:custom.tableName}
+      APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
+      APP_EXPRESS_PATH: './src/get'
+      
   todo:
     handler: lambda.handler
+    package:
+      patterns:
+        - '!src/get.js'
     events: 
       - httpApi: '*'
 
     environment:
       APP_TABLE_NAME: ${self:custom.tableName}
       APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
+      APP_EXPRESS_PATH: './src/index'
 
 resources:
   Resources:
