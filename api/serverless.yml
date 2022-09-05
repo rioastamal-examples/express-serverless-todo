@@ -47,7 +47,7 @@ functions:
       APP_EXPRESS_PATH: './src/get'
   
   getInfo:
-    handler: info/lambda.handler
+    handler: info/src/index.handler
     package:
       individually: true
       patterns:
@@ -63,7 +63,6 @@ functions:
     environment:
       APP_TABLE_NAME: ${self:custom.tableName}
       APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
-      APP_EXPRESS_PATH: './src/index'
 
   todo:
     handler: lambda.handler

@@ -1,14 +1,14 @@
-const express = require('express');
-const app = express();
-
-app.set('json spaces', 2);
-
-app.get('/info', (req, res) => {
-  res.json({
-    name: 'Serverless Todo',
-    version: '1.0',
-    state: 'demo'
-  });
-});
-
-module.exports = app;
+exports.handler = async (event) => {
+    const response = {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: 'Serverless Todo',
+          version: '1.0',
+          state: 'demo'
+        }, null, 2)
+    };
+    return response;
+};
