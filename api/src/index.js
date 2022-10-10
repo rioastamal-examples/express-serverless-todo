@@ -30,14 +30,6 @@ app.get('/', async (req, res) => {
   res.json(data);
 });
 
-app.get('/info', (req, res) => {
-  res.json({
-    name: 'Serverless Todo',
-    version: '1.0',
-    state: 'demo'
-  });
-});
-
 app.put('/', express.json(), (req, res) => {
   const todoItem = {
     pk: userId,
