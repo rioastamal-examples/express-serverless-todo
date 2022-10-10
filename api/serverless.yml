@@ -23,15 +23,54 @@ provider:
             - dynamodb:DeleteItem
           Resource: 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.tableName}'
 functions:
-  todo:
+  getTodo:
     handler: lambda.handler
+    package:
+      individually: true
+      patterns:
+        - '!src/index.js'
+        - '!info/**'
     events: 
-      - httpApi: '*'
-
+      - httpApi:
+          method: GET
+          path: '/'
+    environment:
+      APP_TABLE_NAME: ${self:custom.tableName}
+      APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
+      APP_EXPRESS_PATH: './src/get'
+  
+  getInfo:
+    handler: info/src/index.handler
+    package:
+      individually: true
+      patterns:
+        - '!*.js'
+        - '!node_modules/**'
+        - '!*.json'
+        - '!*src/*'
+        - '!*build.sh'
+    events: 
+      - httpApi:
+          method: GET
+          path: '/info'
     environment:
       APP_TABLE_NAME: ${self:custom.tableName}
       APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
 
+  todo:
+    handler: lambda.handler
+    package:
+      individually: true
+      patterns:
+        - '!src/get.js'
+        - '!info/**'
+    events: 
+      - httpApi: '*'
+    environment:
+      APP_TABLE_NAME: ${self:custom.tableName}
+      APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
+      APP_EXPRESS_PATH: './src/index'
+      
 resources:
   Resources:
     BotDemoTable:
