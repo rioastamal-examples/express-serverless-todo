@@ -1,8 +1,8 @@
-service: 'express-serverless-${env:NODE_ENV, "development"}'
+service: 'serverless-demo-${env:NODE_ENV, "development"}'
 frameworkVersion: '3'
 
 custom:
-  tableName: 'express-todo-${env:NODE_ENV, "development"}'
+  tableName: 'todo-demo-${env:NODE_ENV, "development"}'
 
 provider:
   name: aws
@@ -22,13 +22,6 @@ provider:
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
           Resource: 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.tableName}'
-        - Effect: Allow
-          Action:
-            - lightsail:GetContainerServices
-            - lightsail:GetContainerServiceMetricData
-            - lightsail:UpdateContainerService
-          Resource: 'arn:aws:lightsail:${self:provider.region}:${aws:accountId}:*'
-
 functions:
   getTodo:
     handler: lambda.handler
