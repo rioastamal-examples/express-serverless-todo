@@ -18,8 +18,13 @@ const { createApp } = Vue
 const STORAGE_KEY = 'vue-todomvc-jakartajs'
 let apiBaseUrl = '{{API_BASE_URL}}';
 
+function uuidv4(a) {
+  return a ? (a ^ crypto.getRandomValues(new Uint8Array(8))[0] % 16 >> a/4 ).toString(16) :
+             ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, uuidv4)
+}
+
 // AWS Cloud9 development
-if (location.hostname.indexOf('vfs.cloud9') !== -1) {
+if (apiBaseUrl.indexOf('API_BASE_URL') !== -1) {
   apiBaseUrl = location.protocol + '//' + location.hostname;
 }
 
@@ -32,19 +37,21 @@ const filters = {
 createApp({
   // app initial state
   data: () => ({
-    todos: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
+    todos: [], // JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
     editedTodo: null,
     visibility: 'all',
-    fetchedInitialData: false
+    fetchedInitialData: false,
+    todosUrl: null
   }),
 
   // watch todos change for localStorage persistence
   watch: {
     todos: {
       handler(todos) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
+        const randomId = this.getRandomTodoId();
+        localStorage.setItem(STORAGE_KEY + '-' + randomId, JSON.stringify(todos))
         if (this.fetchedInitialData) {
-          this.callApi('PUT', { body: todos })
+          this.callApi('PUT', { body: todos, path: '/' + randomId })
         }
       },
       deep: true
@@ -52,15 +59,7 @@ createApp({
   },
 
   mounted() {
-    window.addEventListener('hashchange', this.onHashChange)
-    fetch(apiBaseUrl).then( response => {
-      response.json().then( items => {
-        console.log(items)
-        this.todos = items
-        this.fetchedInitialData = true;
-        this.onHashChange()
-      })
-    });
+    this.init();
   },
 
   computed: {
@@ -75,8 +74,32 @@ createApp({
   // methods that implement data logic.
   // note there's no DOM manipulation here at all.
   methods: {
+    init(id) {
+      const randomId = id || this.getRandomTodoId()
+      localStorage.setItem('random-id', randomId)
+      console.log('randomId => ' + randomId)
+      window.history.replaceState(null, null, '?' + randomId + location.hash)
+      this.todosUrl = location.protocol + '//' + location.hostname + location.pathname + '?' + randomId
+      
+      window.addEventListener('hashchange', this.onHashChange)
+      fetch(apiBaseUrl + '/' + randomId).then( response => {
+        response.json().then( items => {
+          console.log(items)
+          this.todos = items
+          this.fetchedInitialData = true;
+          this.onHashChange()
+        })
+      });      
+    },
+    
     toggleAll(e) {
       this.todos.forEach((todo) => (todo.completed = e.target.checked))
+    },
+    
+    getRandomTodoId() {
+      return window.location.search.replace('?', '') || 
+             localStorage.getItem('random-id') || 
+             uuidv4().split('-')[4];
     },
     
     callApi(method, params) {
@@ -139,6 +162,15 @@ createApp({
 
     removeCompleted() {
       this.todos = filters.active(this.todos)
+    },
+    
+    createNewTodoId(e) {
+      this.todos = [];
+      localStorage.removeItem('random-id')
+      history.replaceState(null, null, location.pathname)
+      this.init(e.target.value.trim())
+      e.target.value = ''
+      document.querySelector('.new-todo').focus()
     },
 
     onHashChange() {
@@ -219,6 +251,17 @@ createApp({
           Clear completed
         </button>
       </footer>
+    </section>
+    
+    <section class="main">
+      <h3>Create or update todos</h3>
+      <input
+        class="new-todo"
+        placeholder="Enter todos id (empty for random)"
+        @keyup.enter="createNewTodoId"
+      >
+      
+      <p>Current todos URL: <br><a :href="todosUrl">{{ todosUrl}}</a></p>
     </section>
   </div>
   </body>
