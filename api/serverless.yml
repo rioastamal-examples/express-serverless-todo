@@ -23,22 +23,6 @@ provider:
             - dynamodb:DeleteItem
           Resource: 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.tableName}'
 functions:
-  getTodo:
-    handler: lambda.handler
-    package:
-      individually: true
-      patterns:
-        - '!src/index.js'
-        - '!info/**'
-    events: 
-      - httpApi:
-          method: GET
-          path: '/'
-    environment:
-      APP_TABLE_NAME: ${self:custom.tableName}
-      APP_REGION: ${env:AWS_DEFAULT_REGION, 'ap-southeast-1'}
-      APP_EXPRESS_PATH: './src/get'
-  
   getInfo:
     handler: info/src/index.handler
     package:
@@ -73,7 +57,7 @@ functions:
       
 resources:
   Resources:
-    BotDemoTable:
+    TodoTable:
       Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
@@ -91,3 +75,70 @@ resources:
         TimeToLiveSpecification:
           AttributeName: ttl
           Enabled: true
+
+    AmplifyRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - amplify.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Policies:
+          - PolicyName: Amplify
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: "amplify:*"
+                  Resource: "*"
+    
+    FrontendApp:
+      Type: AWS::Amplify::App
+      Properties:
+        AccessToken: ${env:GITHUB_PERSONAL_TOKEN}
+        Name: serverless-todo-frontend
+        Repository: "https://github.com/rioastamal-examples/express-serverless-todo"
+        BuildSpec: |
+          version: 1
+          applications:
+            - frontend:
+                phases:
+                  build:
+                    commands: 
+                      - sh build.sh --build
+                artifacts:
+                  baseDirectory: build
+                  files:
+                    - '**/*'
+                cache:
+                  paths: []
+              appRoot: web
+        IAMServiceRole: !GetAtt AmplifyRole.Arn
+        EnvironmentVariables:
+          - Name: AMPLIFY_DIFF_DEPLOY
+            Value: false
+          - Name: AMPLIFY_MONOREPO_APP_ROOT
+            Value: web
+          - Name: APP_API_BASE_URL
+            Value: !GetAtt HttpApi.ApiEndpoint
+    
+    FrontendAppBranch:
+      Type: AWS::Amplify::Branch
+      Properties:
+        AppId: !GetAtt FrontendApp.AppId
+        BranchName: master
+        EnableAutoBuild: true
+  
+  Outputs:
+    FrontEndUrl:
+      Value: !Join
+        - ''
+        - - 'https://'
+          - !GetAtt FrontendAppBranch.BranchName
+          - '.'
+          - !GetAtt FrontendApp.DefaultDomain
