@@ -101,7 +101,7 @@ resources:
       Type: AWS::Amplify::App
       Properties:
         AccessToken: ${env:GITHUB_PERSONAL_TOKEN}
-        Name: serverless-todo-frontend
+        Name: serverless-todo-frontend-${env:NODE_ENV, "development"}
         Repository: "https://github.com/rioastamal-examples/express-serverless-todo"
         BuildSpec: |
           version: 1
